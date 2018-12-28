@@ -1,17 +1,34 @@
+CREATE DATABASE IF NOT EXISTS chat;
 USE chat;
---DROP TABLE tokens;
---DROP TABLE users;
+
+DROP TABLE IF EXISTS tokens;
+DROP TABLE IF EXISTS groups_users;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS groups;
+
 CREATE TABLE users (
 	id INT PRIMARY KEY AUTO_INCREMENT,
-	name VARCHAR(255),
+	name VARCHAR(255) UNIQUE,
 	passwordHash CHAR(128),
-	salt CHAR(2048),
+	salt TEXT(2048),
     creationTime DateTime
 );
 
 CREATE TABLE tokens (
+	id INT PRIMARY KEY AUTO_INCREMENT,
 	userID INT,
-    token VARCHAR(512),
-    CONSTRAINT PK_tokens PRIMARY KEY (userID, token),
+    token TEXT(2048),
     FOREIGN KEY (userID) REFERENCES users(id)
+);
+
+CREATE TABLE groups (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+	name VARCHAR(255)
+)
+;
+
+CREATE TABLE groups_users (
+	userID INT,
+	groupID INT,
+	CONSTRAINT PK_groups_users PRIMARY KEY (userID, groupID)
 );

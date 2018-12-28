@@ -1,0 +1,119 @@
+{
+	"info": {
+		"_postman_id": "9cdd24f3-695a-4d92-9477-4c32965f8a62",
+		"name": "chat_backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "register_user",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "76072d90-dda8-4a4f-a0a6-9bdcffe97729",
+						"exec": [
+							"pm.test(\"response is ok\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"password\": \"123456\"\n}"
+				},
+				"url": {
+					"raw": "localhost:3000/register/test",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"register",
+						"test"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "login_user",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d3eb878d-b52f-4fde-a697-0888166d6796",
+						"exec": [
+							"pm.test(\"response is ok\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"password\": \"123456\"\n}"
+				},
+				"url": {
+					"raw": "localhost:3000/login/test",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"login",
+						"test"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "021b662d-f1d2-4ff2-b346-9ab7f16b3a14",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "dd34b711-848c-4b58-8a5a-5ade25da7a0b",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

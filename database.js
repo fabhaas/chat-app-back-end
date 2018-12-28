@@ -8,10 +8,10 @@ let initDatabase = new Promise((resolve, reject) => {
     _database.on("error", function (err) { reject(err); } );
     _database.on("ready", function () { resolve(); } );
     _database.connect({
-        host     : config.database.host,
-        user     : config.database.user,
-        password : config.database.password,
-        database : config.database.database
+        host: config.database.host,
+        user: config.database.user,
+        password: config.database.password,
+        db: config.database.database
     });
 });
 

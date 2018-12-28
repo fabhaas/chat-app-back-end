@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const config = require("./config.json");
 const database = require("./database");
+const bodyParser = require('body-parser');
 
 console.log("Starting up server...");
 
@@ -18,10 +19,15 @@ database.initDatabase.then(() => {
     process.exit(-1);
 });
 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
 //set routes
-/*const groupRoute = require("./routes/group");
+//const groupRoute = require("./routes/group");
 const loginRoute = require("./routes/login");
+const registerRoute = require("./routes/register");
 
 //app.use(express.static('public')); // host public folder
-app.use("/group", groupRoute);
-app.use("/login", loginyRoute);*/
+//app.use("/group", groupRoute);
+app.use("/login", loginRoute);
+app.use("/register", registerRoute);

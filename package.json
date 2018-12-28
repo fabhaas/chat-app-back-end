@@ -8,6 +8,7 @@
   },
   "author": "Elias Sandner; Fabian Haas",
   "dependencies": {
+    "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "mariasql": "^0.2.6"
   }
