@@ -43,14 +43,14 @@ class Chat {
     async addGroup(name: string, ownerID: number, members: string[]) {
         const client = await this.pool.connect();
         try {
-            await client.query('BEGIN');
             await client.query("INSERT INTO groups (name) VALUES ($1)", [name]);
+            await client.query('BEGIN');
 
             const addMemConf = {
                 name: "addgroupmember",
                 text: `INSERT INTO groups_users (userID, groupID, isConfirmed) 
-                            SELECT u.id, g.id, FALSE FROM users u, groups g WHERE u.name = $2 AND g.name = ${name} AND g.ownerID = ${ownerID}`,
-                values: []
+                            SELECT u.id, g.id, FALSE FROM users u, groups g WHERE u.name = $1 AND g.name = '${name}' AND g.ownerID = ${ownerID}`,
+                values: [ "" ]
             }
             for (let member of members) {
                 addMemConf.values = [member];
@@ -63,6 +63,14 @@ class Chat {
         } finally {
             client.release();
         }
+    }
+
+    async autheticate(name: string, token: string) {
+        const res = await this.pool.query("SELECT u.id FROM users u, tokens t WHERE u.name = $1 AND t.userID = u.id AND t.token = $2", [ name, token ]);
+        if (res.rowCount === 0)
+            return undefined;
+        else
+            return res.rows[0].id;
     }
 }
 
