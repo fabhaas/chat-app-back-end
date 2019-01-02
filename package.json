@@ -1,0 +1,17 @@
+{
+  "name": "back-end",
+  "version": "0.0.1",
+  "description": "backend for chat app",
+  "main": "server.js",
+  "repository": "https://gitlab.com/pr_chat/back-end.git",
+  "author": "fahaas <fahaas@edu.aau.at>",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@types/express": "^4.16.0",
+    "@types/express-promise-router": "^2.0.0",
+    "@types/pg": "^7.4.11",
+    "express": "^4.16.4",
+    "express-promise-router": "^3.0.3",
+    "pg": "^7.7.1"
+  }
+}
