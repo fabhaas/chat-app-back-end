@@ -1,6 +1,7 @@
 import { Pool } from "pg";
+import * as crypto from "crypto";
 import { config } from "./config";
-import crypto from "crypto";
+import { hashPassword } from "./hash";
 
 class Chat {
     private pool: Pool;
@@ -18,23 +19,50 @@ class Chat {
     }
 
     async registerUser(name: string, passwordHash: string, salt: string) {
-        await this.pool.query("INSERT INTO users (name, passwordHash, salt, creationTime) VALUES (?, ?, ?, NOW())", [ name, passwordHash, salt ]);
+        await this.pool.query("INSERT INTO users (name, passwordHash, salt, creationTime) VALUES ($1, $2, $3, NOW())", [name, passwordHash, salt]);
     }
 
-    async loginUser(name: string, passwordHash: string) {
-        const res = await this.pool.query("SELECT id, passwordHash, name, salt FROM users WHERE name = $1", [ name ]);
+    async loginUser(name: string, password: string) {
+        const res = await this.pool.query("SELECT id, passwordHash, name, salt FROM users WHERE name = $1", [name]);
         const rows = res.rows;
 
         if (res.rowCount === 0)
             return undefined;
-        
-        if (rows[0].passwordHash === passwordHash) {
+
+        const passwordHash = hashPassword(password, rows[0].salt);
+
+        if (rows[0].passwordhash === passwordHash) {
             const token = crypto.randomBytes(1024).toString("hex");
-            await this.pool.query("INSERT INTO tokens (userID, token) VALUES ($1, $2)", [ rows[0].id, token ]);
+            await this.pool.query("INSERT INTO tokens (userID, token) VALUES ($1, $2)", [rows[0].id, token]);
             return token;
         } else {
             return undefined;
-        }    
+        }
+    }
+
+    async addGroup(name: string, ownerID: number, members: string[]) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query("INSERT INTO groups (name) VALUES ($1)", [name]);
+
+            const addMemConf = {
+                name: "addgroupmember",
+                text: `INSERT INTO groups_users (userID, groupID, isConfirmed) 
+                            SELECT u.id, g.id, FALSE FROM users u, groups g WHERE u.name = $2 AND g.name = ${name} AND g.ownerID = ${ownerID}`,
+                values: []
+            }
+            for (let member of members) {
+                addMemConf.values = [member];
+                await client.query(addMemConf);
+            }
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
     }
 }
 

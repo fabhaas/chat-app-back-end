@@ -1,7 +1,8 @@
-import express from "express";
-const router = express.Router();
+import * as express from "express";
 
-router.get("/groups", async (res, req) => {
+export const groupRoute = express.Router();
+
+groupRoute.post("/:name", async (res, req) => {
     try {
         
     } catch (err) {

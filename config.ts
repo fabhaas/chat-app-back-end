@@ -1,7 +1,7 @@
 export const config = {
     database: {
         host: "localhost",
-        user: "root",
+        user: "chatuser",
         password: "fabian1",
         database: "chat"
     },
