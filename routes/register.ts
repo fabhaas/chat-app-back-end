@@ -2,25 +2,20 @@ import * as express from "express";
 import * as crypto from "crypto";
 import { hashPassword } from "../hash";
 import { chat } from "../database";
+import * as errHandling from "../errHandling";
 
 export const registerRoute = express.Router();
 
 registerRoute.post("/:name", async (req, res) => {
-    const unexpectedErr = (err: Error, res: express.Response) => {
-        console.error(
-            `An exception occurred in a request:
-            \t request: ${req.method} from ${req.ip} with the parameters ${req.params}, the body ${req.body}, and the headers ${req.headers}.
-            \t ${err}`);
-        res.status(500).send("registration failed: unexcpeted error");
-    };
-    const registrationFailed = (res: express.Response, reason: string, code: number = 400) => { res.status(code).send("registration failed: " + reason); };
+    const databaseErr = (err: Error) => errHandling.databaseErr("registration", err, req,res, 500);
+    const registrationFailed = (reason: string, code: number = 400) => errHandling.clientErr("registration", reason, res, code);
 
     try {
         if (!req.body) {
-            registrationFailed(res, "wrong body");
+            registrationFailed("wrong body");
             return;
         } else if (typeof req.body.password !== "string") {
-            registrationFailed(res, "wrong body");
+            registrationFailed("wrong body");
             return;
         }
 
@@ -34,9 +29,9 @@ registerRoute.post("/:name", async (req, res) => {
         res.status(201).send();
     } catch (err) {
         if (err.code === "23505") {
-            registrationFailed(res, "user already exists", 409);
+            registrationFailed("user already exists", 409);
             return;
         }
-        unexpectedErr(err, res);
+        databaseErr(err);
     }
 });
