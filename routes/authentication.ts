@@ -18,7 +18,7 @@ export async function routeAuthentication(req: express.Request, res: express.Res
         if (!id) {
             authErr("wrong username or token");
         } else {
-            (req as any).userID = id;
+            (req as any).user = id;
             next();
         }
     } catch (err) {

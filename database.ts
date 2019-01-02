@@ -18,6 +18,54 @@ class Chat {
         });
     }
 
+    async getGroups(userID: number) {
+        let groups = (await this.pool.query("SELECT * FROM groups WHERE ownerID = $1", [userID])).rows;
+        groups.push.apply(groups, (await this.pool.query("SELECT g.* FROM groups_users gu, groups g WHERE g.id = gu.groupID AND gu.userID = $1", [userID])).rows);
+        return groups;
+    }
+
+    async addGroup(name: string, owner: any, members: string[]) {
+        const client = await this.pool.connect();
+        try {
+            await client.query("INSERT INTO groups (name, ownerID) VALUES ($1, $2)", [name, owner.id]);
+            await client.query('BEGIN');
+
+            const addMemConf = {
+                name: "addgroupmember",
+                text: `INSERT INTO groups_users (userID, groupID, isConfirmed) 
+                                SELECT u.id, g.id, FALSE FROM users u, groups g WHERE u.name = $1 AND g.name = '${name}' AND g.ownerID = ${owner.id}`,
+                values: [""]
+            }
+            for (let member of members) {
+                if (member === owner.name)
+                    continue;
+                addMemConf.values = [member];
+                await client.query(addMemConf);
+            }
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteGroup(name: string, owner: any) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query("DELETE FROM groups_users USING groups WHERE groupID = groups.id AND groups.name = $1 AND groups.ownerID = $2", [name, owner.id]);
+            await client.query("DELETE FROM groups WHERE name = $1 AND ownerID = $2", [name, owner.id]);
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+    }
+
     async registerUser(name: string, passwordHash: string, salt: string) {
         await this.pool.query("INSERT INTO users (name, passwordHash, salt, creationTime) VALUES ($1, $2, $3, NOW())", [name, passwordHash, salt]);
     }
@@ -40,37 +88,12 @@ class Chat {
         }
     }
 
-    async addGroup(name: string, ownerID: number, members: string[]) {
-        const client = await this.pool.connect();
-        try {
-            await client.query("INSERT INTO groups (name) VALUES ($1)", [name]);
-            await client.query('BEGIN');
-
-            const addMemConf = {
-                name: "addgroupmember",
-                text: `INSERT INTO groups_users (userID, groupID, isConfirmed) 
-                            SELECT u.id, g.id, FALSE FROM users u, groups g WHERE u.name = $1 AND g.name = '${name}' AND g.ownerID = ${ownerID}`,
-                values: [ "" ]
-            }
-            for (let member of members) {
-                addMemConf.values = [member];
-                await client.query(addMemConf);
-            }
-            await client.query('COMMIT');
-        } catch (err) {
-            await client.query('ROLLBACK');
-            throw err;
-        } finally {
-            client.release();
-        }
-    }
-
     async autheticate(name: string, token: string) {
-        const res = await this.pool.query("SELECT u.id FROM users u, tokens t WHERE u.name = $1 AND t.userID = u.id AND t.token = $2", [ name, token ]);
+        const res = await this.pool.query("SELECT u.id, u.name FROM users u, tokens t WHERE u.name = $1 AND t.userID = u.id AND t.token = $2", [name, token]);
         if (res.rowCount === 0)
             return undefined;
         else
-            return res.rows[0].id;
+            return res.rows[0];
     }
 }
 
