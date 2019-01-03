@@ -1,5 +1,5 @@
 import * as express from "express";
-import { chat } from "../database";
+import { chat, groupPatchType } from "../database";
 import * as errHandling from "../errHandling";
 
 export const groupsRoute = express.Router();
@@ -25,8 +25,9 @@ groupsRoute.post("/:name", async (req, res) => {
             groupCreaFailed("wrong body");
             return;
         }
-        await chat.addGroup(req.params.name, (req as any).user, req.body.members);
-        res.status(201).send();
+
+        const groupID = await chat.addGroup(req.params.name, (req as any).user, req.body.members);
+        res.status(201).json({ id: groupID });
     } catch (err) {
         if (err.code === "23505") {
             groupCreaFailed("group already exists", 409);
@@ -36,11 +37,54 @@ groupsRoute.post("/:name", async (req, res) => {
     }
 });
 
-groupsRoute.delete("/:name", async (req, res) => {
+groupsRoute.patch("/:id/accept", async (req, res) => {
+    const databaseErr = (err: Error) => errHandling.databaseErr("accepting group request", err, req,res, 500);
+    const groupAccFailed = (reason: string, code: number = 400) => errHandling.clientErr("accepting group request", reason, res, code);
+
+    try {
+        await chat.acceptGroupReq(req.params.id, (req as any).user);
+        res.status(200).send();
+    } catch (err) {
+        if (err === -1) {
+            groupAccFailed("the user is not member of the group");
+            return;
+        }
+        databaseErr(err);
+    }
+});
+
+groupsRoute.patch("/:id/:type/:value", async (req, res) => {
+    const databaseErr = (err: Error) => errHandling.databaseErr("patching group", err, req,res, 500);
+    const groupPatchFailed = (reason: string, code: number = 400) => errHandling.clientErr("patching group", reason, res, code);
+
+    try {
+        switch (req.params.type) {
+            case "name":
+                await chat.patchGroup(groupPatchType.name, req.params.value, req.params.id, (req as any).owner.id);
+                break;
+            default:
+                groupPatchFailed("wrong type", 404);
+                return;
+        }
+        res.status(200).send();
+    } catch (err) {
+        if (err === -1) {
+            groupPatchFailed("the group does not belong to the user or does not exist");
+            return;
+        }
+        if (err.code === "23505") {
+            groupPatchFailed("a group with that name is already owned by the user");
+            return;
+        }
+        databaseErr(err);
+    }
+});
+
+groupsRoute.delete("/:id", async (req, res) => {
     const databaseErr = (err: Error) => errHandling.databaseErr("group deletion", err, req,res, 500);
 
     try {
-        await chat.deleteGroup(req.params.name, (req as any).user);
+        await chat.deleteGroup(req.params.id, (req as any).user);
         res.status(200).send();
     } catch (err) {
         databaseErr(err);

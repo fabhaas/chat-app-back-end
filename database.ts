@@ -3,6 +3,9 @@ import * as crypto from "crypto";
 import { config } from "./config";
 import { hashPassword } from "./hash";
 
+export enum groupPatchType {
+    name = "name"
+}
 class Chat {
     private pool: Pool;
     constructor() {
@@ -27,22 +30,23 @@ class Chat {
     async addGroup(name: string, owner: any, members: string[]) {
         const client = await this.pool.connect();
         try {
-            await client.query("INSERT INTO groups (name, ownerID) VALUES ($1, $2)", [name, owner.id]);
+            const id: number = (await client.query("INSERT INTO groups (name, ownerID) VALUES ($1, $2) RETURNING id", [name, owner.id])).rows[0].id;
             await client.query('BEGIN');
 
             const addMemConf = {
                 name: "addgroupmember",
-                text: `INSERT INTO groups_users (userID, groupID, isConfirmed) 
-                                SELECT u.id, g.id, FALSE FROM users u, groups g WHERE u.name = $1 AND g.name = '${name}' AND g.ownerID = ${owner.id}`,
-                values: [""]
+                text: `INSERT INTO groups_users (userID, groupID, isAccepted) 
+                            SELECT u.id, g.id, FALSE FROM users u, groups g WHERE u.name = $1 AND g.name = $2 AND g.ownerID = $3`,
+                values: ["", name, owner.id]
             }
             for (let member of members) {
                 if (member === owner.name)
                     continue;
-                addMemConf.values = [member];
+                addMemConf.values[0] = member;
                 await client.query(addMemConf);
             }
             await client.query('COMMIT');
+            return id;
         } catch (err) {
             await client.query('ROLLBACK');
             throw err;
@@ -51,11 +55,25 @@ class Chat {
         }
     }
 
-    async deleteGroup(name: string, owner: any) {
+    async acceptGroupReq(id: number, user: any) {
+        const count = (await this.pool.query("UPDATE groups_users SET isAccepted = TRUE WHERE groupID = $1 AND userID = $2", [ id, user.id ])).rowCount;
+        if (count === 0)
+            throw -1;
+    }
+
+    async patchGroup(type: groupPatchType, value: string, id: number, owner: any) {
+        const testRes = await this.pool.query("SELECT id FROM groups WHERE id = $1 AND ownerID = $2", [id, owner.id]);
+        if (testRes.rowCount === 0) //the group does not belong to the user or does not exist
+            throw -1;
+        
+        await this.pool.query(`UPDATE groups SET ${type.toString()} = $1 WHERE id = $2`, [ value, testRes.rows[0].id ]);
+    }
+
+    async deleteGroup(id: number, owner: any) {
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
-            await client.query("DELETE FROM groups_users USING groups WHERE groupID = groups.id AND groups.name = $1 AND groups.ownerID = $2", [name, owner.id]);
+            await client.query("DELETE FROM groups_users USING groups WHERE groupID = groups.id AND groups.id = $1 AND groups.ownerID = $2", [id, owner.id]);
             await client.query("DELETE FROM groups WHERE name = $1 AND ownerID = $2", [name, owner.id]);
             await client.query('COMMIT');
         } catch (err) {

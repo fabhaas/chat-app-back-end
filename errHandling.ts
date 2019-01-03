@@ -9,7 +9,7 @@ export function databaseErr(processName: string, err: Error, req: express.Reques
         \t\tip: ${req.ip}
         \t\tparameters: ${JSON.stringify(req.params)}
         \t\tbody: ${JSON.stringify(req.body)}
-        \t ${err}`);
+        \t ${JSON.stringify(err)}`);
     res.status(500).send(`${processName} failed: unexcpeted error`);
 }
 
