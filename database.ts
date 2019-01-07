@@ -56,7 +56,7 @@ class Chat {
     }
 
     async acceptGroupReq(id: number, user: any) {
-        const count = (await this.pool.query("UPDATE groups_users SET isAccepted = TRUE WHERE groupID = $1 AND userID = $2", [ id, user.id ])).rowCount;
+        const count = (await this.pool.query("UPDATE groups_users SET isAccepted = TRUE WHERE groupID = $1 AND userID = $2", [id, user.id])).rowCount;
         if (count === 0)
             throw -1;
     }
@@ -65,13 +65,15 @@ class Chat {
         const testRes = await this.pool.query("SELECT id FROM groups WHERE id = $1 AND ownerID = $2", [id, owner.id]);
         if (testRes.rowCount === 0) //the group does not belong to the user or does not exist
             throw -1;
-        
-        await this.pool.query(`UPDATE groups SET ${type.toString()} = $1 WHERE id = $2`, [ value, testRes.rows[0].id ]);
+
+        await this.pool.query(`UPDATE groups SET ${type.toString()} = $1 WHERE id = $2`, [value, testRes.rows[0].id]);
     }
 
     async deleteGroup(id: number, owner: any) {
         const client = await this.pool.connect();
         try {
+            if ((await client.query("SELECT id FROM groups WHERE id = $1 AND ownerID = $2", [id, owner.id])).rowCount === 0)
+                throw -1;
             await client.query('BEGIN');
             await client.query("DELETE FROM groups_users USING groups WHERE groupID = groups.id AND groups.id = $1 AND groups.ownerID = $2", [id, owner.id]);
             await client.query("DELETE FROM groups WHERE name = $1 AND ownerID = $2", [name, owner.id]);
@@ -82,6 +84,31 @@ class Chat {
         } finally {
             client.release();
         }
+    }
+
+    async getFriends(user: any) {
+        return (await this.pool.query("SELECT u.name FROM user u, friends f WHERE u.id = f.friendID AND f.userID = $1", [user.id])).rows;
+    }
+
+    async makeFriend(user: any, friendname: string) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(`INSERT INTO friends (userID, friendID, isAccepted)
+                                    SELECT $1, id, TRUE FROM users WHERE name = $2`, [user.id, friendname]);
+            await client.query(`INSERT INTO friends (userID, friendID, isAccepted)
+                                    SELECT id, $1, FALSE FROM users WHERE name = $2`, [user.id, friendname]);
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+    }
+
+    async breakOffFriendship(user: any, friendname: string) {
+        
     }
 
     async registerUser(name: string, passwordHash: string, salt: string) {

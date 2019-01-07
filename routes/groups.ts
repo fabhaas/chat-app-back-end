@@ -82,11 +82,16 @@ groupsRoute.patch("/:id/:type/:value", async (req, res) => {
 
 groupsRoute.delete("/:id", async (req, res) => {
     const databaseErr = (err: Error) => errHandling.databaseErr("group deletion", err, req,res, 500);
+    const groupDeletionFailed = (reason: string) => errHandling.clientErr("group deletion", reason, res, 400);
 
     try {
         await chat.deleteGroup(req.params.id, (req as any).user);
         res.status(200).send();
     } catch (err) {
+        if (err === -1) {
+            groupDeletionFailed("group does not exist or is not owned by user");
+            return;
+        }
         databaseErr(err);
     }
 });

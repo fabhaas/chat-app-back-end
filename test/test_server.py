@@ -78,6 +78,16 @@ def acceptGroupReq(username, token, groupid):
         print(res.text)
         exit(-1)
 
+def make_friend(username, token, friendname):
+    try:
+        res = requests.post(url + "/friends/" + friendname, headers={ "Content-Type": "application/json", "Authorization": json.dumps({ "name": username, "token": token }) })
+        assert(res.status_code == 201)
+    except:
+        print(res.url)
+        print(res.status_code)
+        print(res.text)
+        exit(-1)
+
 register_user(user0_name, user0_password)
 register_user(user1_name, user1_password)
 register_user(user2_name, user2_password)
@@ -93,4 +103,6 @@ user2_groups = getGroups(user2_name, user2_token)
 user2_group0_id = user2_groups[0]["id"]
 
 acceptGroupReq(user2_name, user2_token, user2_group0_id)
-print(getGroups(user2_name, user2_token))
+
+make_friend(user0_name, user0_token, user1_name)
+make_friend(user1_name, user1_token, user2_name)
