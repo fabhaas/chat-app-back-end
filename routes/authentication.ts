@@ -1,10 +1,10 @@
 import * as express from "express";
-import { chat } from "../database";
-import * as errHandling from "../errHandling";
+import { users } from "../database/database";
+import * as errHandler from "../errHandler";
 
 export async function routeAuthentication(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const databaseErr = (err: Error) => errHandling.databaseErr("authentication", err, req,res, 500);
-    const authErr = (reason: string) => errHandling.clientErr("authentication", reason, res, 401);
+    const databaseErr = (err: Error) => errHandler.databaseErr("authentication", err, req,res, 500);
+    const authErr = (reason: string) => errHandler.clientErr("authentication", reason, res, 401);
 
     try {
         if (!req.headers.authorization) {
@@ -13,12 +13,12 @@ export async function routeAuthentication(req: express.Request, res: express.Res
         }
 
         const data = JSON.parse(req.headers.authorization);
-        const id = await chat.autheticate(data.name, data.token);
+        const user = await users.authenticate(data.name, data.token);
         
-        if (!id) {
+        if (!user) {
             authErr("wrong username or token");
         } else {
-            (req as any).user = id;
+            (<any>req).user = user;
             next();
         }
     } catch (err) {
