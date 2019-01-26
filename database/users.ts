@@ -33,7 +33,7 @@ export class Users {
 
     async getFriends(user: User) {
         const friendsQuery: QueryArrayConfig = {
-            text: "SELECT u.name FROM users u, friends f WHERE u.id = f.friendID AND f.userID = $1",
+            text: "SELECT u.name FROM users u, friends f WHERE u.id = f.userID AND f.friendID = $1 AND f.isAccepted = TRUE",
             values: [user.id],
             rowMode: "array"
         };
