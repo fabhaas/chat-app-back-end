@@ -13,6 +13,10 @@ export async function routeAuthentication(req: express.Request, res: express.Res
         }
 
         const data = JSON.parse(req.headers.authorization);
+        if (!data.name || !data.token) {
+            authErr("header authorization not set properly")
+        }
+
         const user = await users.authenticate(data.name, data.token);
         
         if (!user) {

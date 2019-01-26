@@ -3,6 +3,7 @@ import * as fs from "fs";
 import { Users } from "./users";
 import { Groups } from "./groups";
 import { Friends } from "./friends";
+import { Messages } from "./messages";
 
 const config = JSON.parse(fs.readFileSync("./config.json").toString());
 
@@ -62,3 +63,4 @@ export const database = new Database(
 export const users = new Users(database);
 export const groups = new Groups(database);
 export const friends = new Friends(database);
+export const messages = new Messages(database);

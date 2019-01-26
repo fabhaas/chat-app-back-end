@@ -1,12 +1,97 @@
-//import * as errHandler from "../errHandler";
-import { users } from "../database/database";
+import * as WebSocket from "ws";
+import { SocketEmitter } from "./emitter";
+import * as errHandler from "../errHandler";
+import { authenticate } from "./authenticate";
+import { usermessage } from "./usermessage";
 import { User } from "../database/types/user";
-import * as socketio from "socket.io";
-import { HashMap } from "hashmap";
 
-const currUsers = new HashMap<string, User>();
+let wss: WebSocket.Server;
 
-export function initSockets(io: socketio.Server) {
+export function emitEvent(socket: WebSocket, event: string, ...data: any[]) {
+    socket.send(JSON.stringify({
+        event: event,
+        data: data
+    }), err => errHandler.wsErr(err));
+}
+
+export function sendMsgToUser(socket: WebSocket, user: User, to: string, msg: string) {
+    const clients = wss.clients.values();
+    for (const client of clients)
+        if ((<any>client).user)
+            if ((<any>client).user.name === to)
+                emitEvent(client, "usermessage", user.name, msg);
+}
+
+export function sendError(socket: WebSocket, msg: string, code: number) {
+    socket.send(JSON.stringify({
+        event: "error",
+        data: [ msg, code ]
+    }), err => errHandler.wsErr(err));
+}
+
+export function initSockets(server: WebSocket.Server) {
+    wss = server;
+    wss.on("error", err => errHandler.wsErr(err));
+    wss.on("connection", (socket, req) => {
+        (<any>socket).user = null;
+        
+        const events = [ "auth", "usermessage" ];
+        const emitter = new SocketEmitter();
+        emitter.addListener("usermessage", (user: User, to: string, msg: string) => { 
+            usermessage(socket, user, to, msg);
+        });
+
+        socket.on("message", data => {
+            try {
+                const msg = JSON.parse(data.toString());
+                if (msg.event && msg.data) {
+                    if (typeof msg.event !== "string" || !Array.isArray(msg.data))
+                        throw "wrong data: wrong types";
+                } else {
+                    throw "wrong data: not parsable";
+                }
+
+                if ((<any>socket).user)
+                    if (events.includes(msg.event))
+                        emitter.emit(msg.event, (<any>socket).user, ...msg.data);
+                    else
+                        throw "wrong event";
+                else {
+                    if (msg.event === "auth") {
+                        if (typeof msg.data[0] === "string" && typeof msg.data[1] === "string") {
+                            authenticate(socket, msg.data[0], msg.data[1])
+                                .catch(err =>  { throw err; });
+                        }
+                    } else {
+                        throw "not authenticated";
+                    }
+                }
+            } catch (err) {
+                errHandler.wsErr(new Error(`error while processing received message: ${err}`));
+                socket.close(4000, "Unauthorized");
+            }
+        });
+        socket.on("close", (code, reason) => {
+            if (code || reason)
+                console.log(`${(<any>socket).user ? "User " + (<any>socket).user.name : "Unknown user"} disconnected. REASON: ${reason}. CODE: ${code}`);
+        });
+        socket.on("error", err => {
+            errHandler.wsErr(err);
+        });
+    });
+}
+
+//import * as errHandler from "../errHandler";
+//import * as socketio from "socket.io";
+//import { users, messages } from "../database/database";
+//import { User } from "../database/types/user";
+//import { HashMap } from "hashmap";
+//import { Group } from "../database/types/group";
+
+//const userData = new HashMap<string, User>();
+//const currUsers = new HashMap<string, string>();
+
+/*export function initSockets(io: socketio.Server) {
     const userErr = (reason: string, socket: socketio.Socket) => {
         console.error(`User ${socket.id} ${reason}.`);
     };
@@ -19,146 +104,93 @@ export function initSockets(io: socketio.Server) {
                 return;
             }
 
-            const user = await users.authenticate(name, token);
-            if (!user) {
-                userErr("failed to authenticate", socket);
+            try {
+                const user = await users.authenticate(name, token);
+                if (!user) {
+                    userErr("failed to authenticate", socket);
+                    socket.disconnect(true);
+                    return;
+                }
+
+                await users.get(user);
+
+                userData.set(socket.id, user);
+                currUsers.set(name, socket.id);
+
+                socket.emit("auth_success");
+            } catch (err) {
+                userErr(err, socket);
+                socket.disconnect(true);
+            }
+        });
+
+        socket.on("user_message", async (msg: any, to: any) => {
+            if (!userData.has(socket.id)) {
+                userErr("authentication error", socket);
                 socket.disconnect(true);
                 return;
             }
 
-            await users.get(user);
+            if (typeof msg !== "string" || typeof to !== "string") {
+                userErr("failed to transmit message", socket);
+                return;
+            }
 
-            currUsers.set(socket.id, user);
+            try {
+                const user = userData.get(socket.id);
+                if (user.friends.includes(to)) {
+                    if (currUsers.has(to))
+                        socket.broadcast.to(currUsers.get(to)).emit("user_message", msg, user.name);
+                    await messages.add(user, to, msg);
+                } else {
+                    userErr("failed to transmit message because the requesting user is not a friend of the receiver", socket);
+                    return;
+                }
+            } catch (err) {
+                userErr(err, socket);
+                socket.disconnect(true);
+            }
+        });
+
+        socket.on("group_message", async (msg: any, groupid: any) => {
+            if (!userData.has(socket.id)) {
+                userErr("authentication error", socket);
+                socket.disconnect(true);
+                return;
+            }
+
+            if (typeof msg !== "string" || typeof groupid !== "number") {
+                userErr("failed to transmit message", socket);
+                return;
+            }
+
+            try {
+                const user = userData.get(socket.id);
+                let group: Group;
+
+                for (const g of user.groups) {
+                    if (g.id === groupid) {
+                        group = g;
+                        return;
+                    }
+                }
+
+                if (!group) {
+                    userErr("failed to transmit message because user is not part of the group", socket);
+                    return;
+                }
+
+                //get members
+                //send to all members
+            } catch (err) {
+                userErr(err, socket);
+                socket.disconnect(true);
+            }
         });
 
         socket.on("disconnect", () => {
             if (currUsers.has(socket.id))
                 currUsers.remove(socket.id);
         });
-    });
-}
-
-/*const currUsers = new HashMap<number, User>();
-var maxID = 0;
-
-export function initSockets(wss: Websocket.Server) {
-    wss.on("error", err => errHandler.wsErr(err));
-
-    wss.on("connection", (ws, req) => {
-        const id = maxID++;
-        const userErr = (reason: string) => {
-            console.error(`User ${ws.url} ${reason}.`);
-        }
-        const checkAuth = (ws: Websocket) => {
-            if (!currUsers.get(maxID)) {
-                userErr("tried to send a message without autheticating himself/herself");
-                return false;
-            } else {
-                return true;
-            }
-        }
-        ws.on("message", async (data) => {
-            try {
-                const msg = JSON.parse(data.toString());
-
-                if (!msg.type || !msg.data) {
-                    userErr("sent inappropriate message");
-                    return;
-                }
-
-                switch (msg.type) {
-                    case "auth": {
-                        const user = await chat.autheticate(msg.data.name, msg.data.token);
-                        if (!user) {
-                            userErr("authentication error");
-                            break;
-                        }
-                        for (let val of await chat.getFriends(user))
-                            user.friends.push(val[0]);
-                        user.groups = await chat.getGroups(user);
-                        currUsers.set(id, user);
-                        ws.send(JSON.stringify({
-                            type: "authCb",
-                            data: true
-                        }));
-                        break;
-                    }
-
-                    case "refresh": {
-                        if (!checkAuth(ws))
-                            break;
-
-                        const user = currUsers.get(id);
-                        for (let val of await chat.getFriends(user))
-                            user.friends.push(val[0]);
-                        user.groups = await chat.getGroups(user);                        
-                        break;
-                    }
-
-                    case "sendUserMsg": {
-                        if (!checkAuth(ws))
-                            break;
-
-                        if (!msg.to) {
-                            userErr("tried to send message to user without defining the user");
-                            break;
-                        }
-
-                        const user = currUsers.get(id);
-                        //TODO: when not online save to database
-                        //TODO: save to database
-                        if (user.friends.includes(msg.to))
-                            ws.send(JSON.stringify({
-                                type: "messageFromUser",
-                                from: user.name,
-                                data: msg.data
-                            }), err => {
-                                if (err)
-                                    errHandler.wsErr(err);
-                            });
-                        else
-                            userErr("is not in a friendship with the user which he/she is trying to send a message");
-                        break;
-                        }
-
-                    case "sendGroupMsg": {
-                        if (!checkAuth(ws))
-                            break;
-
-                        if (!msg.to) {
-                            userErr("tried to send message to group without defining the group");
-                            break;
-                        }
-
-                        const user = currUsers.get(id);
-
-                        if (user.groups.includes(msg.to)) {
-                            wss.clients.forEach((client) => {
-                                if ((client as any).user.groups.includes(msg.to))
-                                    ws.send({
-                                        type: "messageFromGroup",
-                                        from: (ws as any).user.name,
-                                        group: msg.to,
-                                        data: msg.data
-                                    }, err => {
-                                        if (err)
-                                            errHandler.wsErr(err);
-                                    });
-                            });
-                        } else {
-                            userErr("is not part of the group which he/she tries to send a message to");
-                        }
-                        break;
-                    }
-
-                    default:
-                        userErr("sent unknown event");
-                        break;
-                }
-            } catch (err) {
-                errHandler.wsErr(err);
-            }
-        });
-        ws.on("error", err => errHandler.wsErr(err));
     });
 }*/

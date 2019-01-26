@@ -13,10 +13,11 @@ export function databaseErr(processName: string, err: Error, req: express.Reques
     res.status(500).send(`${processName} failed: unexcpeted error`);
 }
 
-export function wsErr(err: Error) {
-    console.error(
-        `An exception occurred on a websocket: 
-        \t${err}`);
+export function wsErr(err?: Error) {
+    if (err)
+        console.error(
+            `An exception occurred on a websocket: 
+            \t${err}`);
 }
 
 export function clientErr(processName: string, reason: string, res: express.Response, code: number = 400) {
