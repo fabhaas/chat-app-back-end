@@ -1,7 +1,6 @@
 import { Database } from "./database";
 import { User } from "./types/user";
 import { QueryConfig, QueryArrayConfig } from "pg";
-import { Group } from "./types/group";
 import { hashPassword } from "../hash";
 import * as crypto from "crypto";
 
@@ -17,17 +16,19 @@ export class Users {
     }
 
     async getGroups(user: User) {
-        const ownerQuery: QueryConfig = {
+        const ownerQuery: QueryArrayConfig = {
             text: "SELECT * FROM groups WHERE ownerID = $1",
-            values: [user.id]
+            values: [user.id],
+            rowMode: "array"
         };
-        const userQuery: QueryConfig = {
+        const userQuery: QueryArrayConfig = {
             text: "SELECT g.* FROM groups_users gu, groups g WHERE g.id = gu.groupID AND gu.userID = $1",
-            values: [user.id]
+            values: [user.id],
+            rowMode: "array"
         };
 
-        let groups = <Group[]>(await this.database.query(ownerQuery)).rows;
-        groups.push.apply(groups, <Group[]>(await this.database.query(userQuery)).rows);
+        let groups: Array<any[]> = (await this.database.query(ownerQuery)).rows;
+        groups = groups.concat((await this.database.query(userQuery)).rows);
         return groups;
     }
 

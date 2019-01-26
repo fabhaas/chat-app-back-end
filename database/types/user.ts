@@ -1,12 +1,10 @@
-import { Group } from "./group";
-
 export class User {
     public name: string;
     public id: number;
     public friends: Array<string> = [ ];
-    public groups: Array<Group> = [ ];
+    public groups: Array<any[]> = [ ];
 
-    constructor (name: string, id: number, friends?: Array<string>, groups?: Array<Group>) {
+    constructor (name: string, id: number, friends?: Array<string>, groups?: Array<any[]>) {
         this.name = name;
         this.id = id;
         if (friends)

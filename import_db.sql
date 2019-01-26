@@ -1,8 +1,9 @@
 DROP TABLE IF EXISTS tokens;
 DROP TABLE IF EXISTS groups_users;
+DROP TABLE IF EXISTS groups_messages;
 DROP TABLE IF EXISTS groups;
 DROP TABLE IF EXISTS friends;
-DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS users_messages;
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
@@ -40,12 +41,20 @@ CREATE TABLE friends (
 	PRIMARY KEY (userID, friendID)
 );
 
-CREATE TABLE messages (
+CREATE TABLE users_messages (
 	fromID INT REFERENCES users(id),
 	toID INT REFERENCES users(id),
-	msg VARCHAR(2048),
+	message VARCHAR(2048),
 	submissionTime TIMESTAMP,
-	PRIMARY KEY (fromID, toID, msg, submissionTime)
+	PRIMARY KEY (fromID, toID, message, submissionTime)
+);
+
+CREATE TABLE groups_messages (
+	userID INT REFERENCES users(id),
+	groupID INT REFERENCES groups(id),
+	message VARCHAR(2048),
+	submissionTime TIMESTAMP,
+	PRIMARY KEY (userID, groupID, message, submissionTime)
 );
 
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO chatuser;

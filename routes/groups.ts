@@ -1,14 +1,23 @@
 import * as express from "express";
-import { users, groups } from "../database/database";
+import { users, groups, messages } from "../database/database";
 import * as errHandler from "../errHandler";
 import { GroupPatchType } from "../database/groups";
 
 export const groupsRoute = express.Router();
 
 groupsRoute.get("/", async (req, res) => {
-    const databaseErr = (err: Error) => errHandler.databaseErr("getting groups", err, req,res, 500);
+    const databaseErr = (err: Error) => errHandler.databaseErr("getting groups", err, req, res, 500);
     try {
         res.status(200).json({ groups: await users.getGroups((<any>req).user) });
+    } catch (err) {
+        databaseErr(err);
+    }
+});
+
+groupsRoute.get("/:id/messages", async (req, res) => {
+    const databaseErr = (err: Error) => errHandler.databaseErr("getting group messages", err, req, res, 500);
+    try {
+        res.status(200).json({ messages: (await messages.getGroupChatHistory(req.params.id)) });
     } catch (err) {
         databaseErr(err);
     }

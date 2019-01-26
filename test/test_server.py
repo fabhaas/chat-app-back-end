@@ -100,7 +100,8 @@ create_group(group0_name, group0_owner, user0_token, group0_members)
 create_group(group1_name, group1_owner, user1_token, group1_members)
 
 user2_groups = getGroups(user2_name, user2_token)
-user2_group0_id = user2_groups[0]["id"]
+print(user2_groups)
+user2_group0_id = user2_groups[0][0]
 
 acceptGroupReq(user2_name, user2_token, user2_group0_id)
 

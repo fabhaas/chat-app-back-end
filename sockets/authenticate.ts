@@ -1,12 +1,21 @@
-import { emitEvent } from "./sockets";
+import { emitEvent, sendError } from "./sockets";
 import { users } from "../database/database";
 import * as WebSocket from "ws";
+import * as errHandler from "../errHandler"
 
 export async function authenticate(socket: WebSocket, name: string, token: string) {
-    const user = await users.authenticate(name, token);
-    if (!user)
-        throw "authetnication error";
-    await users.get(user);
-    (<any>socket).user = user;
-    emitEvent(socket, "auth_success");
+    try {
+        const user = await users.authenticate(name, token);
+        if (!user) {
+            sendError(socket, "authentication error", 1);
+            return null;
+        }
+        await users.get(user);
+        emitEvent(socket, "auth_success");
+        return user;
+    } catch (err) {
+        errHandler.wsErr(err);
+        sendError(socket, "authentication error", 1);
+        return null;
+    }
 };
