@@ -7,7 +7,7 @@ export const friendsRoute = express.Router();
 friendsRoute.get("/", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("getting friends", err, req,res, 500);
     try {
-        res.status(200).json({ groups: await users.getFriends((<any>req).user) });
+        res.status(200).json({ friends: await users.getFriends((<any>req).user) });
     } catch (err) {
         databaseErr(err);
     }

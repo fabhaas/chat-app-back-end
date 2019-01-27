@@ -29,13 +29,13 @@ export class Messages {
 
     async getUserChatHistory(user0: User, user1name: string) {
         const user0Query: QueryArrayConfig = {
-            text: "SELECT u0.name, u1.name, m.message, m.submissionTime FROM users_messages m, users u1, users u0 WHERE m.fromID = $1 AND m.toID = u1.id AND u0.name = $2 AND m.fromID = u0.id",
+            text: "SELECT u0.name, u1.name, m.message, m.submissionTime FROM users_messages m, users u1, users u0 WHERE m.fromID = $1 AND m.toID = u1.id AND u1.name = $2 AND m.fromID = u0.id",
             values: [user0.id, user1name],
             rowMode: "array"
         };
 
         const user1Query: QueryArrayConfig = {
-            text: "SELECT u1.name, u0.name, m.message, m.submissionTime FROM users_messages m, users u0, users u1 WHERE m.fromID = u1.id AND m.toID = $1 AND u1.name = $2 AND u0.id = m.toID",
+            text: "SELECT u1.name, u0.name, m.message, m.submissionTime FROM users_messages m, users u0, users u1 WHERE m.fromID = u1.id AND m.toID = $1 AND u0.name = $2 AND u0.id = m.toID",
             values: [user0.id, user1name],
             rowMode: "array"
         };

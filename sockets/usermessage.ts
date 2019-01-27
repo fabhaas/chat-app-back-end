@@ -10,8 +10,8 @@ export async function usermessage(socket: WebSocket, user: User, to: string, msg
             sendError(socket, "wrong arguments", 4);
             return;
         }
-        if (user.friends.includes(to)) {
-            sendMsgToUser(socket, user, to, msg);
+        if (user.friends.includes([to, true])) {
+            sendMsgToUser(user, to, msg);
             await messages.addUserMsg(user, to, msg);
         } else {
             sendError(socket, "not a friend of user", 2);

@@ -39,10 +39,10 @@ groupsRoute.post("/:name", async (req, res) => {
         const groupID = await groups.add(req.params.name, (<any>req).user, req.body.members);
         res.status(201).json({ id: groupID });
     } catch (err) {
-        /*if (err.code === "23505") {
+        if (err.code === "23505") {
             groupCreaFailed("group already exists", 409);
             return;
-        }*/
+        }
         databaseErr(err);
     }
 });

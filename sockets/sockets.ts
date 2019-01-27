@@ -15,7 +15,7 @@ export function emitEvent(socket: WebSocket, event: string, ...data: any[]) {
     }), err => errHandler.wsErr(err));
 }
 
-export function sendMsgToUser(socket: WebSocket, user: User, to: string, msg: string) {
+export function sendMsgToUser(user: User, to: string, msg: string) {
     const clients = wss.clients.values();
     for (const client of clients)
         if ((<any>client).user)
@@ -23,7 +23,7 @@ export function sendMsgToUser(socket: WebSocket, user: User, to: string, msg: st
                 emitEvent(client, "usermessage", user.name, msg);
 }
 
-export function sendMsgToGroup(socket: WebSocket, from: User, to: number, msg: string) {
+export function sendMsgToGroup(from: User, to: number, msg: string) {
     const clients = wss.clients.values();
     for (const client of clients)
         for (const group of (<any>client).user.groups)

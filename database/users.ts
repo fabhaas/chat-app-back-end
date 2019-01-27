@@ -22,7 +22,7 @@ export class Users {
             rowMode: "array"
         };
         const userQuery: QueryArrayConfig = {
-            text: "SELECT g.* FROM groups_users gu, groups g WHERE g.id = gu.groupID AND gu.userID = $1",
+            text: "SELECT g.*, gu.isAccepted FROM groups_users gu, groups g WHERE g.id = gu.groupID AND gu.userID = $1",
             values: [user.id],
             rowMode: "array"
         };
@@ -34,16 +34,12 @@ export class Users {
 
     async getFriends(user: User) {
         const friendsQuery: QueryArrayConfig = {
-            text: "SELECT u.name FROM users u, friends f WHERE u.id = f.userID AND f.friendID = $1 AND f.isAccepted = TRUE",
+            text: "SELECT u.name, f.isAccepted FROM users u, friends f WHERE u.id = f.userID AND f.friendID = $1",
             values: [user.id],
             rowMode: "array"
         };
         const rows = (await this.database.query(friendsQuery)).rows;
-        const ret = new Array<string>();
-
-        for (const row of rows)
-            ret.push(row[0]);
-        return ret;
+        return rows;
     }
 
     async register(name: string, passwordHash: string, salt: string) {

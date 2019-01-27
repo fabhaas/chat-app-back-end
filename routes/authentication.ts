@@ -14,7 +14,8 @@ export async function routeAuthentication(req: express.Request, res: express.Res
 
         const data = JSON.parse(req.headers.authorization);
         if (!data.name || !data.token) {
-            authErr("header authorization not set properly")
+            authErr("header authorization not set properly");
+            return;
         }
 
         const user = await users.authenticate(data.name, data.token);

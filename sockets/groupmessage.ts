@@ -13,7 +13,7 @@ export async function groupmessage(socket: WebSocket, user: User, to: number, ms
         let isMemOfGroup = false;
         for (const group of (<any>socket).user.groups) {
             if (group[0] === to) {
-                sendMsgToGroup(socket, user, to, msg);
+                sendMsgToGroup(user, to, msg);
                 await messages.addGroupMsg(user, to, msg);
                 isMemOfGroup = true;
             }
