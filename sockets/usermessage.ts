@@ -4,6 +4,13 @@ import { sockets } from "./sockets";
 import { messages } from "../database/database";
 import * as errHandler from "../errHandler";
 
+/**
+ * Is called when an user message was received
+ * @param socket the socket on which the message was received
+ * @param user the authenticated user which uses the socket
+ * @param to to whom the message will be sent
+ * @param msg the message
+ */
 export async function usermessage(socket: WebSocket, user: User, to: string, msg: string) {
     try {
         if (typeof to !== "string" || typeof msg !== "string") {

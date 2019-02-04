@@ -14,11 +14,13 @@ const wss: WebSocket.Server = new WebSocket.Server({
     clientTracking: true
 }, () => console.log(`WebSocket server listening on port ${wss.options.port}.`));
 
+//init Websockets
 sockets.init(wss);
 
 app.use(express.json()); //enable json bodies
 app.use(cors());
 
+//load routes
 mountRoutes(app);
 
 server.listen(config.server.port, "localhost", function () {

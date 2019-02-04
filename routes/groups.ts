@@ -6,6 +6,9 @@ import { sockets } from "../sockets/sockets";
 
 export const groupsRoute = express.Router();
 
+/**
+ * Gets all members of a group
+ */
 groupsRoute.get("/:id", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("getting group members", err, req, res, 500);
     const groupGetMemFailed = (reason: string, code: number = 400) => errHandler.clientErr("getting group members", reason, res, code);
@@ -26,6 +29,9 @@ groupsRoute.get("/:id", async (req, res) => {
     }
 });
 
+/**
+ * Gets the message history of a group
+ */
 groupsRoute.get("/:id/messages", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("getting group messages", err, req, res, 500);
     const getGroupMsg = (reason: string, code: number = 400) => errHandler.clientErr("getting group messages", reason, res, code);
@@ -42,7 +48,10 @@ groupsRoute.get("/:id/messages", async (req, res) => {
     }
 });
 
-
+/**
+ * Creates group
+ * @returns the id of the newly created group
+ */
 groupsRoute.post("/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("group creation", err, req,res, 500);
     const groupCreaFailed = (reason: string, code: number = 400) => errHandler.clientErr("group creation", reason, res, code);
@@ -72,6 +81,9 @@ groupsRoute.post("/:name", async (req, res) => {
     }
 });
 
+/**
+ * Adds members to group
+ */
 groupsRoute.post("/:id/members", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("adding group members", err, req,res, 500);
     const addingGroupMemFailed = (reason: string, code: number = 400) => errHandler.clientErr("adding group members", reason, res, code);
@@ -106,6 +118,9 @@ groupsRoute.post("/:id/members", async (req, res) => {
     }
 });
 
+/**
+ * Accepts group request
+ */
 groupsRoute.patch("/:id/accept", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("accepting group request", err, req,res, 500);
     const groupAccFailed = (reason: string, code: number = 400) => errHandler.clientErr("accepting group request", reason, res, code);
@@ -128,6 +143,9 @@ groupsRoute.patch("/:id/accept", async (req, res) => {
     }
 });
 
+/**
+ * Changes the specified property
+ */
 groupsRoute.patch("/:id/:type/:value", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("patching group", err, req,res, 500);
     const groupPatchFailed = (reason: string, code: number = 400) => errHandler.clientErr("patching group", reason, res, code);
@@ -161,6 +179,9 @@ groupsRoute.patch("/:id/:type/:value", async (req, res) => {
     }
 });
 
+/**
+ * Removes member from group
+ */
 groupsRoute.delete("/:id/members/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("removing group member", err, req,res, 500);
     const removeMemFailed = (reason: string, code: number = 400) => errHandler.clientErr("removing group member", reason, res, code);
@@ -188,6 +209,9 @@ groupsRoute.delete("/:id/members/:name", async (req, res) => {
     }
 });
 
+/**
+ * Deletes group
+ */
 groupsRoute.delete("/:id", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("group deletion", err, req,res, 500);
     const groupDeletionFailed = (reason: string) => errHandler.clientErr("group deletion", reason, res, 400);

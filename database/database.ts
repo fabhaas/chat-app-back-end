@@ -7,10 +7,16 @@ import { Messages } from "./messages";
 
 const config = JSON.parse(fs.readFileSync("./config.json").toString());
 
+/**
+ * Interface for transaction queries
+ */
 export interface TransactionQueryConfig extends QueryConfig {
     noAffectedRowsAllowed?: boolean;
 }
 
+/**
+ * Represents the database
+ */
 export class Database {
     private pool: Pool;
     constructor(host: string, user: string, password: string, database: string) {
@@ -26,10 +32,18 @@ export class Database {
         });
     }
 
+    /**
+     * Executes query on database
+     * @param queryconf the query
+     */
     query(queryconf: QueryConfig) {
         return this.pool.query(queryconf);
     }
 
+    /**
+     * Executes transaction on database
+     * @param queries the queries which should be executed
+     */
     async executeTransaction(queries: TransactionQueryConfig[]) {
         const client = await this.pool.connect();
         try {

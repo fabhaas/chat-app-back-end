@@ -5,6 +5,9 @@ import { sockets } from "../sockets/sockets";
 
 export const friendsRoute = express.Router();
 
+/**
+ * Makes two users friends
+ */
 friendsRoute.post("/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("making friend", err, req,res, 500);
     const makingFrieFailed = (reason: string, code: number = 400) => errHandler.clientErr("making friend", reason, res, code);
@@ -26,6 +29,9 @@ friendsRoute.post("/:name", async (req, res) => {
     }
 });
 
+/**
+ * Accepts the friend request of user
+ */
 friendsRoute.patch("/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("making friend", err, req,res, 500);
     const acceptFriendReqFailed = (reason: string, code: number = 400) => errHandler.clientErr("accepting friend req", reason, res, code);
@@ -43,6 +49,9 @@ friendsRoute.patch("/:name", async (req, res) => {
     }
 });
 
+/**
+ * Breaks off friendship between users
+ */
 friendsRoute.delete("/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("breaking off friendship", err, req,res, 500);
     const breakOffFrieFailed = (reason: string) => errHandler.clientErr("breaking off friendship", reason, res, 400);

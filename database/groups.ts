@@ -6,12 +6,20 @@ export enum GroupPatchType {
     name = "name"
 }
 
+/**
+ * Represents the groups table on the database
+ */
 export class Groups {
     private database: Database;
     constructor(database: Database) {
         this.database = database;
     }
 
+    /**
+     * Checks if the user is the owner of the group
+     * @param id the group
+     * @param owner the user
+     */
     async checkIfOwner(id: number, owner: User) {
         return (await this.database.query({
             text: "SELECT TRUE FROM groups WHERE id = $1 AND ownerID = $2",
@@ -19,11 +27,16 @@ export class Groups {
         })).rowCount !== 0;
     }
 
+    /**
+     * Gets all members of a group
+     * @param user the user, has to be part of group or the group owner
+     * @param groupid the group
+     */
     async getMembers(user: User, groupid: number) {
-        if ((await this.database.query({
+        if ((await this.database.query({ //test if user is part of group
             text: "SELECT TRUE FROM groups_users WHERE userID = $1 AND groupID = $2 AND isAccepted = TRUE",
             values: [user.id, groupid]
-        })).rowCount !== 0 || (await this.database.query({
+        })).rowCount !== 0 || (await this.database.query({ //or test if user is owner
             text: "SELECT TRUE FROM groups WHERE id = $1 AND ownerID = $2",
             values: [groupid, user.id]
         })).rowCount !== 0) {
@@ -37,6 +50,12 @@ export class Groups {
         }
     }
 
+    /**
+     * Creates a group
+     * @param name the group name
+     * @param owner the owner
+     * @param members the members
+     */
     async add(name: string, owner: User, members: string[]) {
         const addGroupQuery: QueryConfig = {
             text: "INSERT INTO groups (name, ownerID) VALUES ($1, $2) RETURNING id",
@@ -63,6 +82,13 @@ export class Groups {
         })).rows[0].id;
     }
 
+    /**
+     * Changes property of group
+     * @param id the group
+     * @param owner the owner
+     * @param type the property type @see GroupPatchType
+     * @param value the new value
+     */
     async patch(id: number, owner: User, type: GroupPatchType, value: string) {
         if (!(await this.checkIfOwner(id, owner))) //the group does not belong to the user or does not exist
             throw -1;
@@ -75,6 +101,12 @@ export class Groups {
         await this.database.query(patchQuery);
     }
 
+    /**
+     * Removes member from group
+     * @param id the group
+     * @param owner the owner
+     * @param member the member to remove
+     */
     async removeMember(id: number, owner: User, member: string) {
         //test if user is owner
         if (!(await this.checkIfOwner(id, owner)))
@@ -87,6 +119,12 @@ export class Groups {
             throw -2;
     }
 
+    /**
+     * Adds members to group
+     * @param id the group
+     * @param owner the owner
+     * @param members the members to add
+     */
     async addMembers(id: number, owner: User, members: string[]) {
         //test if user is owner
         if (!(await this.checkIfOwner(id, owner)))
@@ -108,6 +146,11 @@ export class Groups {
         await this.database.executeTransaction(queries);
     }
 
+    /**
+     * Deletes group
+     * @param id the group
+     * @param owner the owner
+     */
     async delete(id: number, owner: User) {
         //test if user is owner
         if (!(await this.checkIfOwner(id, owner)))

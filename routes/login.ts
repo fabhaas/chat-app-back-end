@@ -4,6 +4,10 @@ import * as errHandler from "../errHandler";
 
 export const loginRoute = express.Router();
 
+/**
+ * Logs user in
+ * @returns a token
+ */
 loginRoute.post("/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("login", err, req,res, 500);
     const loginFailed = (reason: string) => errHandler.clientErr("login", reason, res, 401);

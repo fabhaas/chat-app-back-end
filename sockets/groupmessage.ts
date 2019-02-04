@@ -4,6 +4,13 @@ import { sockets } from "./sockets";
 import { messages } from "../database/database";
 import { User } from "../database/types/user";
 
+/**
+ * Is called when a groupmessage was received. This function sends the message to the specified group
+ * @param socket the socket on which the message was received
+ * @param user the sender
+ * @param to to whom the message will be send
+ * @param msg the message
+ */
 export async function groupmessage(socket: WebSocket, user: User, to: number, msg: string) {
     try {
         if ((typeof to !== "string" && typeof to !== "number") || typeof msg !== "string") {

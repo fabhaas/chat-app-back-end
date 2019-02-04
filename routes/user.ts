@@ -5,6 +5,9 @@ import { sockets } from "../sockets/sockets";
 
 export const userRoute = express.Router();
 
+/**
+ * Gets the chat history of two users
+ */
 userRoute.get("/messages/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("getting user chat history", err, req, res, 500);
     try {
@@ -14,6 +17,9 @@ userRoute.get("/messages/:name", async (req, res) => {
     }
 });
 
+/**
+ * Gets all groups of the user
+ */
 userRoute.get("/groups", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("getting groups", err, req, res, 500);
     try {
@@ -23,6 +29,9 @@ userRoute.get("/groups", async (req, res) => {
     }
 });
 
+/**
+ * Gets all friends of the user
+ */
 userRoute.get("/friends", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("getting friends", err, req,res, 500);
     try {
@@ -32,6 +41,9 @@ userRoute.get("/friends", async (req, res) => {
     }
 });
 
+/**
+ * Changes the username
+ */
 userRoute.patch("/name/:newname", async (req, res) => {
     const changingNameFailed = (reason: string, code: number) => errHandler.clientErr("patching username", reason, res, code);
     const databaseErr = (err: Error) => errHandler.databaseErr("patching username", err, req, res, 500);
@@ -47,6 +59,9 @@ userRoute.patch("/name/:newname", async (req, res) => {
     }
 });
 
+/**
+ * Changes the password of the user
+ */
 userRoute.patch("/password", async (req, res) => {
     const changingPasswordFailed = (reason: string, code: number) => errHandler.clientErr("patching password", reason, res, code);
     const databaseErr = (err: Error) => errHandler.databaseErr("patching password", err, req, res, 500);
@@ -73,6 +88,9 @@ userRoute.patch("/password", async (req, res) => {
     }
 });
 
+/**
+ * The user leaves the specified group
+ */
 userRoute.delete("/groups/:id", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("leaving group", err, req, res, 500);
     const leavingGroup = (reason: string, code: number = 400) => errHandler.clientErr("leaving group", reason, res, code);

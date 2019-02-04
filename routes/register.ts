@@ -6,6 +6,9 @@ import * as errHandler from "../errHandler";
 
 export const registerRoute = express.Router();
 
+/**
+ * Registers user
+ */
 registerRoute.post("/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("registration", err, req,res, 500);
     const registrationFailed = (reason: string, code: number = 400) => errHandler.clientErr("registration", reason, res, code);

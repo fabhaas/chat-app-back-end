@@ -5,17 +5,28 @@ import { hashPassword } from "../hash";
 import * as crypto from "crypto";
 import { sockets } from "../sockets/sockets";
 
+/**
+ * Represents the users table on the database
+ */
 export class Users {
     private database: Database;
     constructor(database: Database) {
         this.database = database;
     }
 
+    /**
+     * Gets all friends and groups of user
+     * @param user the user, has to have id and name
+     */
     async get(user: User) {
         user.friends = await this.getFriends(user);
         user.groups = await this.getGroups(user);
     }
 
+    /**
+     * Gets all groups of user
+     * @param user the user, has to have id and name
+     */
     async getGroups(user: User) {
         const ownerQuery: QueryArrayConfig = {
             text: "SELECT id, name, $1, TRUE FROM groups WHERE ownerID = $2",
@@ -33,6 +44,10 @@ export class Users {
         return groups;
     }
 
+    /**
+     * Gets all friends of users
+     * @param user the user, has to have id
+     */
     async getFriends(user: User) {
         const friendsQuery: QueryArrayConfig = {
             text: "SELECT u1.name, f0.isAccepted, f1.isAccepted FROM friends f0, friends f1, users u0, users u1 WHERE f0.userID = u0.id AND f0.friendID = u1.id AND f1.userID = u1.id AND f1.friendID = u0.id AND u0.id = $1",
@@ -43,6 +58,12 @@ export class Users {
         return rows;
     }
 
+    /**
+     * Registers a user
+     * @param name the username
+     * @param passwordHash the passwordHash @see hashPassword
+     * @param salt the salt used to hash the password
+     */
     async register(name: string, passwordHash: string, salt: string) {
         const registerQuery: QueryConfig = {
             text: "INSERT INTO users (name, passwordHash, salt, creationTime) VALUES ($1, $2, $3, NOW())",
@@ -51,6 +72,11 @@ export class Users {
         await this.database.query(registerQuery);
     }
 
+    /**
+     * Logs user in
+     * @param name the username
+     * @param password the password of the user
+     */
     async login(name: string, password: string) {
         const authQuery: QueryConfig = {
             text: "SELECT id, passwordHash, name, salt FROM users WHERE name = $1",
@@ -78,6 +104,11 @@ export class Users {
         }
     }
 
+    /**
+     * User leaves group
+     * @param user the user
+     * @param groupid the group id
+     */
     async leaveGroup(user: User, groupid: number) {
         if ((await groups.checkIfOwner(groupid, user)))
             throw -1;
@@ -89,6 +120,12 @@ export class Users {
             throw -2;
     }
 
+    /**
+     * Authenticates user
+     * @param name the username
+     * @param token the token, returned by login
+     * @returns the authenticated user, else null
+     */
     async authenticate(name: string, token: string) {
         const authQuery: QueryConfig = {
             text: "SELECT u.id, u.name FROM users u, tokens t WHERE u.name = $1 AND t.userID = u.id AND t.token = $2",
@@ -102,6 +139,11 @@ export class Users {
             return new User(res.rows[0].name, res.rows[0].id);
     }
 
+    /**
+     * Accpets group request
+     * @param user the user, has to have id
+     * @param groupid the group id
+     */
     async acceptGroupReq(user: User, groupid: number) {
         const acceptQuery: QueryConfig = {
             text: "UPDATE groups_users SET isAccepted = TRUE WHERE groupID = $1 AND userID = $2",
@@ -112,6 +154,11 @@ export class Users {
             throw -1;
     }
 
+    /**
+     * Accepts friend request
+     * @param user the user, has to have 
+     * @param friend 
+     */
     async acceptFriedReq(user: User, friend: string) {
         const acceptQuery: QueryConfig = {
             text: "UPDATE friends SET isAccepted = TRUE FROM users WHERE friends.userID = $1 AND users.id = friends.friendID AND users.name = $2",
@@ -122,6 +169,11 @@ export class Users {
             throw -1;
     }
 
+    /**
+     * Changes the username
+     * @param user the user, has to have id
+     * @param newname the new name
+     */
     async changeUsername(user: User, newname: string) {
         const ret = (await this.database.query({
             text: "UPDATE users SET name = $1 WHERE id = $2",
@@ -131,6 +183,12 @@ export class Users {
         return ret;
     }
 
+    /**
+     * Changes the password
+     * @param user the user
+     * @param oldPassword the old password
+     * @param newPassword the new password
+     */
     async changePassword(user: User, oldPassword: string, newPassword: string) {
         const rows = (await this.database.query({
             text: "SELECT passwordHash, salt FROM users WHERE id = $1",

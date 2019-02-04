@@ -7,19 +7,31 @@ import { User } from "../database/types/user";
 import { groupmessage } from "./groupmessage";
 import { users } from "../database/database";
 
-let wss: WebSocket.Server;
-
+/**
+ * Represents the Websocket connections
+ */
 export class Sockets {
+    private wss: WebSocket.Server;
+
+    /**
+     * Refreshes all cached friends and groups and sends refreshall message to all clients
+     */
     async refreshAll() {
-        const clients = wss.clients.values();
-        for (const client of clients) {
-            this.emitEvent(client, "refreshall");
-            (<any>client).user = await users.get((<any>client).user);
-        }
+        const clients = this.wss.clients.values();
+        for (const client of clients)
+            if ((<any>client).user) {
+                this.emitEvent(client, "refreshall");
+                (<any>client).user = await users.get((<any>client).user);
+            }
     }
 
+    /**
+     * Refreshes cached entries of the group and sends refresgroups message to the clients which authenticated users are in the group
+     * @param groupid the group
+     * @param type why the entries should be refreshed
+     */
     async refreshGroup(groupid: number, type: string) {
-        const clients = wss.clients.values();
+        const clients = this.wss.clients.values();
 
         if (type === "created") {
             //refresh all
@@ -45,8 +57,14 @@ export class Sockets {
         }
     }
 
+    /**
+     * Refreshes cached entries of the friendship and sends refreshfriends message to the clients of the specified users
+     * @param user0 the first user
+     * @param user1 the second user
+     * @param type why the entries should be refreshed
+     */
     async refreshFriend(user0: string, user1: string, type: string) {
-        const clients = wss.clients.values();
+        const clients = this.wss.clients.values();
         for (const client of clients)
             if ((<any>client).user)
                 if ((<any>client).user.name === user0 || (<any>client).user.name === user1) {
@@ -55,6 +73,12 @@ export class Sockets {
                 }
     }
 
+    /**
+     * Emits an event on the specified socket
+     * @param socket the socket
+     * @param event the event type
+     * @param data the data
+     */
     emitEvent(socket: WebSocket, event: string, ...data: any[]) {
         socket.send(JSON.stringify({
             event: event,
@@ -62,8 +86,15 @@ export class Sockets {
         }), err => errHandler.wsErr(err));
     }
 
+    /**
+     * Sends usermessage to user
+     * @param user the sender
+     * @param to to whom the message will be sent
+     * @param msg the message
+     * @param timestamp the timestamp
+     */
     sendMsgToUser(user: User, to: string, msg: string, timestamp: Date) {
-        const clients = wss.clients.values();
+        const clients = this.wss.clients.values();
         for (const client of clients) {
             if ((<any>client).user)
                 if ((<any>client).user.name === to)
@@ -71,14 +102,27 @@ export class Sockets {
         }
     }
 
+    /**
+     * Sends message to group
+     * @param from the sender
+     * @param to the group
+     * @param msg the message
+     * @param timestamp the timestamp
+     */
     sendMsgToGroup(from: User, to: number, msg: string, timestamp: Date) {
-        const clients = wss.clients.values();
+        const clients = this.wss.clients.values();
         for (const client of clients)
             for (const group of (<any>client).user.groups)
                 if (group[0] === to)
                     this.emitEvent(client, "groupmessage", from.name, to, msg, timestamp);
     }
 
+    /**
+     * Sends error message to socket
+     * @param socket the socket
+     * @param msg the message
+     * @param code the error code
+     */
     sendError(socket: WebSocket, msg: string, code: number) {
         socket.send(JSON.stringify({
             event: "error",
@@ -86,10 +130,14 @@ export class Sockets {
         }), err => errHandler.wsErr(err));
     }
 
+    /**
+     * Initializes the Websocket server
+     * @param server the server
+     */
     init(server: WebSocket.Server) {
-        wss = server;
-        wss.on("error", err => errHandler.wsErr(err));
-        wss.on("connection", (socket, req) => {
+        this.wss = server;
+        this.wss.on("error", err => errHandler.wsErr(err));
+        this.wss.on("connection", (socket, req) => {
             (<any>socket).user = null;
 
             const events = ["auth", "usermessage", "groupmessage"];
