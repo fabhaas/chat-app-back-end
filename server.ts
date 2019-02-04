@@ -3,7 +3,7 @@ import * as http from "http";
 import * as express from "express";
 import * as WebSocket from "ws";
 import { mountRoutes } from "./routes/routes";
-import { initSockets } from "./sockets/sockets";
+import { sockets } from "./sockets/sockets";
 import * as cors from "cors";
 
 const app = express();
@@ -14,7 +14,7 @@ const wss: WebSocket.Server = new WebSocket.Server({
     clientTracking: true
 }, () => console.log(`WebSocket server listening on port ${wss.options.port}.`));
 
-initSockets(wss);
+sockets.init(wss);
 
 app.use(express.json()); //enable json bodies
 app.use(cors());

@@ -8,20 +8,20 @@ export class Messages {
         this.database = database;
     }
 
-    async addUserMsg(from: User, toname: string, msg: string) {
+    async addUserMsg(from: User, toname: string, msg: string, timestamp: Date) {
         const msgQuery: QueryConfig = {
             text: `INSERT INTO users_messages (fromID, toID, message, submissionTime)
-                        SELECT $1, u.id, $3, NOW() FROM users u WHERE u.name = $2`,
-            values: [from.id, toname, msg]
+                        SELECT $1, u.id, $3, $4 FROM users u WHERE u.name = $2`,
+            values: [from.id, toname, msg, timestamp]
         };
 
         await this.database.query(msgQuery);
     }
 
-    async addGroupMsg(from: User, toid: number, msg: string) {
+    async addGroupMsg(from: User, toid: number, msg: string, timestamp: Date) {
         const msgQuery: QueryConfig = {
-            text: "INSERT INTO group_messages (userID, groupID, message, submissionTime) VALUES ($1, $2, $3, NOW())",
-            values: [from.id, toid, msg]
+            text: "INSERT INTO groups_messages (userID, groupID, message, submissionTime) VALUES ($1, $2, $3, $4)",
+            values: [from.id, toid, msg, timestamp]
         };
 
         await this.database.query(msgQuery);
@@ -35,22 +35,23 @@ export class Messages {
         };
 
         const user1Query: QueryArrayConfig = {
-            text: "SELECT u1.name, u0.name, m.message, m.submissionTime FROM users_messages m, users u0, users u1 WHERE m.fromID = u1.id AND m.toID = $1 AND u0.name = $2 AND u0.id = m.toID",
+            text: "SELECT u0.name, u1.name, m.message, m.submissionTime FROM users_messages m, users u0, users u1 WHERE m.fromID = u0.id AND m.toID = $1 AND u0.name = $2 AND m.toID = u1.id",
             values: [user0.id, user1name],
             rowMode: "array"
         };
 
         let rows = (await this.database.query(user0Query)).rows;
         rows = rows.concat((await this.database.query(user1Query)).rows);
+        rows.sort((a, b) => new Date(a[3]).valueOf() - new Date(b[3]).valueOf());
         return rows;
     }
 
     async getGroupChatHistory(groupid: number) {
         const msgQuery: QueryArrayConfig = {
-            text: "SELECT u.name, m.message, m.submissionTime FROM groups_messages m WHERE m.groupID = $1 AND u.id = m.userID",
+            text: "SELECT u.name, m.message, m.submissionTime FROM groups_messages m, users u WHERE m.groupID = $1 AND u.id = m.userID",
             values: [ groupid ],
             rowMode: "array"
         };
-        return (await this.database.query(msgQuery)).rows;
+        return (await this.database.query(msgQuery)).rows.sort((a, b) => new Date(a[3]).valueOf() - new Date(b[3]).valueOf());
     }
 }

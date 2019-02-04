@@ -2,7 +2,7 @@
     "database": {
         "host": "localhost",
         "user": "chatuser",
-        "password": "fabian1",
+        "password": "chatUserPassword!10?",
         "database": "chat"
     },
     "server": {

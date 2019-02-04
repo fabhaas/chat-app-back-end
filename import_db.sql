@@ -15,7 +15,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE tokens (
-	userID INT REFERENCES users(id),
+	userID INT REFERENCES users ON DELETE CASCADE,
     token CHAR(2048),
 	PRIMARY KEY (userID, token)
 );
@@ -23,35 +23,35 @@ CREATE TABLE tokens (
 CREATE TABLE groups (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255),
-	ownerID INT REFERENCES users(id),
+	ownerID INT REFERENCES users ON DELETE CASCADE,
 	UNIQUE (name, ownerID)
 );
 
 CREATE TABLE groups_users (
-	userID INT REFERENCES users(id),
-	groupID INT REFERENCES groups(id),
+	userID INT REFERENCES users ON DELETE CASCADE,
+	groupID INT REFERENCES groups ON DELETE CASCADE,
 	isAccepted BOOLEAN,
 	PRIMARY KEY (userID, groupID)
 );
 
 CREATE TABLE friends (
-	userID INT REFERENCES users(id),
-	friendID INT REFERENCES users(id),
+	userID INT REFERENCES users ON DELETE CASCADE,
+	friendID INT REFERENCES users ON DELETE CASCADE,
 	isAccepted BOOLEAN,
 	PRIMARY KEY (userID, friendID)
 );
 
 CREATE TABLE users_messages (
-	fromID INT REFERENCES users(id),
-	toID INT REFERENCES users(id),
+	fromID INT REFERENCES users ON DELETE CASCADE,
+	toID INT REFERENCES users ON DELETE CASCADE,
 	message VARCHAR(2048),
 	submissionTime TIMESTAMP,
 	PRIMARY KEY (fromID, toID, message, submissionTime)
 );
 
 CREATE TABLE groups_messages (
-	userID INT REFERENCES users(id),
-	groupID INT REFERENCES groups(id),
+	userID INT REFERENCES users ON DELETE CASCADE,
+	groupID INT REFERENCES groups ON DELETE CASCADE,
 	message VARCHAR(2048),
 	submissionTime TIMESTAMP,
 	PRIMARY KEY (userID, groupID, message, submissionTime)

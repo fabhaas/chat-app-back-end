@@ -59,7 +59,7 @@ def create_group(groupname, owner, token, members):
 
 def getGroups(username, token):
     try:
-        res = requests.get(url + "/groups", headers={ "Content-Type": "application/json", "Authorization": json.dumps({ "name": username, "token": token }) })
+        res = requests.get(url + "/user/groups", headers={ "Content-Type": "application/json", "Authorization": json.dumps({ "name": username, "token": token }) })
         assert(res.status_code == 200)
         return json.loads(res.text)["groups"]
     except:
@@ -100,10 +100,11 @@ create_group(group0_name, group0_owner, user0_token, group0_members)
 create_group(group1_name, group1_owner, user1_token, group1_members)
 
 user2_groups = getGroups(user2_name, user2_token)
-print(user2_groups)
 user2_group0_id = user2_groups[0][0]
 
 acceptGroupReq(user2_name, user2_token, user2_group0_id)
 
 make_friend(user0_name, user0_token, user1_name)
 make_friend(user1_name, user1_token, user2_name)
+
+print("success");

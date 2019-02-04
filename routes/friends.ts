@@ -1,17 +1,9 @@
 import * as express from "express";
 import * as errHandler from "../errHandler";
 import { friends, users } from "../database/database";
+import { sockets } from "../sockets/sockets";
 
 export const friendsRoute = express.Router();
-
-friendsRoute.get("/", async (req, res) => {
-    const databaseErr = (err: Error) => errHandler.databaseErr("getting friends", err, req,res, 500);
-    try {
-        res.status(200).json({ friends: await users.getFriends((<any>req).user) });
-    } catch (err) {
-        databaseErr(err);
-    }
-});
 
 friendsRoute.post("/:name", async (req, res) => {
     const databaseErr = (err: Error) => errHandler.databaseErr("making friend", err, req,res, 500);
@@ -19,10 +11,32 @@ friendsRoute.post("/:name", async (req, res) => {
 
     try {
         await friends.make((<any>req).user, req.params.name);
+        await sockets.refreshFriend((<any>req).user.name, req.params.name, "created");
         res.status(201).send();
     } catch (err) {
+        if (err === -1) {
+            makingFrieFailed("user does not exist");
+            return;
+        }
         if (err.code === "23505") {
             makingFrieFailed("friendship already exists or is requested", 409);
+            return;
+        }
+        databaseErr(err);
+    }
+});
+
+friendsRoute.patch("/:name", async (req, res) => {
+    const databaseErr = (err: Error) => errHandler.databaseErr("making friend", err, req,res, 500);
+    const acceptFriendReqFailed = (reason: string, code: number = 400) => errHandler.clientErr("accepting friend req", reason, res, code);
+
+    try {
+        await users.acceptFriedReq((<any>req).user, req.params.name);
+        await sockets.refreshFriend((<any>req).user.name, req.params.name, "accepted");
+        res.status(200).send();
+    } catch (err) {
+        if (err === -1) {
+            acceptFriendReqFailed("there is no friend request to accept");
             return;
         }
         databaseErr(err);
@@ -35,10 +49,12 @@ friendsRoute.delete("/:name", async (req, res) => {
 
     try {
         await friends.breakOff((<any>req).user, req.params.name);
+        await sockets.refreshFriend((<any>req).user.name, req.params.name, "deleted");
         res.status(200).send();
     } catch (err) {
         if (err === -1) {
-            breakOffFrieFailed("friendship does not exist", )
+            breakOffFrieFailed("friendship does not exist");
+            return;
         }
         databaseErr(err);
     }

@@ -1,8 +1,9 @@
-import { Database } from "./database";
+import { Database, groups } from "./database";
 import { User } from "./types/user";
 import { QueryConfig, QueryArrayConfig } from "pg";
 import { hashPassword } from "../hash";
 import * as crypto from "crypto";
+import { sockets } from "../sockets/sockets";
 
 export class Users {
     private database: Database;
@@ -17,12 +18,12 @@ export class Users {
 
     async getGroups(user: User) {
         const ownerQuery: QueryArrayConfig = {
-            text: "SELECT * FROM groups WHERE ownerID = $1",
-            values: [user.id],
+            text: "SELECT id, name, $1, TRUE FROM groups WHERE ownerID = $2",
+            values: [user.name, user.id],
             rowMode: "array"
         };
         const userQuery: QueryArrayConfig = {
-            text: "SELECT g.*, gu.isAccepted FROM groups_users gu, groups g WHERE g.id = gu.groupID AND gu.userID = $1",
+            text: "SELECT g.id, g.name, u.name, gu.isAccepted FROM groups_users gu, groups g, users u WHERE g.id = gu.groupID AND gu.userID = $1 AND u.id = g.ownerID",
             values: [user.id],
             rowMode: "array"
         };
@@ -34,7 +35,7 @@ export class Users {
 
     async getFriends(user: User) {
         const friendsQuery: QueryArrayConfig = {
-            text: "SELECT u.name, f.isAccepted FROM users u, friends f WHERE u.id = f.userID AND f.friendID = $1",
+            text: "SELECT u1.name, f0.isAccepted, f1.isAccepted FROM friends f0, friends f1, users u0, users u1 WHERE f0.userID = u0.id AND f0.friendID = u1.id AND f1.userID = u1.id AND f1.friendID = u0.id AND u0.id = $1",
             values: [user.id],
             rowMode: "array"
         };
@@ -77,6 +78,17 @@ export class Users {
         }
     }
 
+    async leaveGroup(user: User, groupid: number) {
+        if ((await groups.checkIfOwner(groupid, user)))
+            throw -1;
+        
+        if ((await this.database.query({
+            text: "DELETE FROM groups_users WHERE userID = $1 AND groupID = $2",
+            values: [user.id, groupid]
+        })).rowCount === 0)
+            throw -2;
+    }
+
     async authenticate(name: string, token: string) {
         const authQuery: QueryConfig = {
             text: "SELECT u.id, u.name FROM users u, tokens t WHERE u.name = $1 AND t.userID = u.id AND t.token = $2",
@@ -92,7 +104,7 @@ export class Users {
 
     async acceptGroupReq(user: User, groupid: number) {
         const acceptQuery: QueryConfig = {
-            text: "UPDATE groups_users SET isAccepted = TRUE WHERE groupID = $1 AND userID = $2", 
+            text: "UPDATE groups_users SET isAccepted = TRUE WHERE groupID = $1 AND userID = $2",
             values: [groupid, user.id]
         };
 
@@ -100,13 +112,46 @@ export class Users {
             throw -1;
     }
 
-    async acceptFriedReq(user: User, friend: User) {
+    async acceptFriedReq(user: User, friend: string) {
         const acceptQuery: QueryConfig = {
-            text: "UPDATE friends SET isAccepted = TRUE WHERE userID = $1 AND friendID = $2",
-            values: [user.id, friend.id]
+            text: "UPDATE friends SET isAccepted = TRUE FROM users WHERE friends.userID = $1 AND users.id = friends.friendID AND users.name = $2",
+            values: [user.id, friend]
         };
-        
+
         if ((await this.database.query(acceptQuery)).rowCount === 0)
             throw -1;
+    }
+
+    async changeUsername(user: User, newname: string) {
+        const ret = (await this.database.query({
+            text: "UPDATE users SET name = $1 WHERE id = $2",
+            values: [newname, user.id]
+        })).rowCount;
+        await sockets.refreshAll();
+        return ret;
+    }
+
+    async changePassword(user: User, oldPassword: string, newPassword: string) {
+        const rows = (await this.database.query({
+            text: "SELECT passwordHash, salt FROM users WHERE id = $1",
+            values: [user.id]
+        })).rows;
+
+        const oldPasswordHash = hashPassword(oldPassword, rows[0].salt);
+
+        if (rows[0].passwordhash === oldPasswordHash) {
+            const salt = crypto.randomBytes(1024).toString("hex");
+            const newPasswordHash = hashPassword(
+                newPassword,
+                salt
+            );
+
+            return (await this.database.query({
+                text: "UPDATE users SET passwordHash = $1, salt = $2 WHERE id = $3",
+                values: [newPasswordHash, salt, user.id]
+            })).rowCount;
+        } else {
+            throw -1;
+        }
     }
 }

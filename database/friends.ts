@@ -27,7 +27,7 @@ export class Friends {
             text: "DELETE FROM friends USING users WHERE userID = $1 AND friendID = users.id AND users.name = $2",
             values: [ user.id, friendname],
         }, {
-            text: "DELETE FROM friends USING users WHERE userID = users.name AND friendID = $1 AND users.name = $2",
+            text: "DELETE FROM friends USING users WHERE userID = users.id AND friendID = $1 AND users.name = $2",
             values: [ user.id, friendname ]
         }];
 
